@@ -17,16 +17,16 @@ public final class SnakeRunner implements Runnable {
     private final int turboSleepMs = 80; //40
     private int turboTicks = 0;
 
-    // Scheduler para ticks periódicos
     private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
-
+    private volatile boolean paused = true;
     public SnakeRunner(Snake snake, Board board) {
         this.snake = snake;
         this.board = board;
-        // Inicia el ciclo de ejecución al crear el objeto
+        
         executor.schedule(this, baseSleepMs, TimeUnit.MILLISECONDS);
     }
 
+    /**
     @Override
     public void run() {
         maybeTurn();
@@ -40,16 +40,44 @@ public final class SnakeRunner implements Runnable {
             turboTicks--;
         }
         int delay = (turboTicks > 0) ? turboSleepMs : baseSleepMs;
-        // Reprograma el siguiente tick
+        
         executor.schedule(this, delay, TimeUnit.MILLISECONDS);
     }
 
+    
+    **/ 
+    
+    public void setPaused(boolean paused) {
+        this.paused = paused;
+    }
+    
+    @Override
+    public void run() {
+        if (!paused) { // 🔹 solo avanza si no está en pausa
+            maybeTurn();
+            var res = board.step(snake);
+            if (res == Board.MoveResult.HIT_OBSTACLE) {
+                randomTurn();
+            } else if (res == Board.MoveResult.ATE_TURBO) {
+                turboTicks = 100;
+            }
+            if (turboTicks > 0) {
+                turboTicks--;
+            }
+        }
+        int delay = (turboTicks > 0) ? turboSleepMs : baseSleepMs;
+        executor.schedule(this, delay, TimeUnit.MILLISECONDS);
+    }
     private void maybeTurn() {
         double p = (turboTicks > 0) ? 0.01 : 0.01;
         if (ThreadLocalRandom.current().nextDouble() < p) {
             randomTurn();
         }
     }
+    
+    
+    
+    
 
     private void randomTurn() {
         var dirs = Direction.values();

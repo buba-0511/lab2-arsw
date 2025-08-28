@@ -21,6 +21,7 @@ public final class SnakeApp extends JFrame {
     private final JButton actionButton;
     private final GameClock clock;
     private final java.util.List<Snake> snakes = new java.util.ArrayList<>();
+    private final java.util.List<SnakeRunner> runners = new java.util.ArrayList<>();
 
     public SnakeApp() {
         super("The Snake Race");
@@ -35,7 +36,7 @@ public final class SnakeApp extends JFrame {
         }
 
         this.gamePanel = new GamePanel(board, () -> snakes);
-        this.actionButton = new JButton("Action");
+        this.actionButton = new JButton("Iniciar");
 
         setLayout(new BorderLayout());
         add(gamePanel, BorderLayout.CENTER);
@@ -48,8 +49,11 @@ public final class SnakeApp extends JFrame {
         this.clock = new GameClock(60, () -> SwingUtilities.invokeLater(gamePanel::repaint));
 
         var exec = Executors.newVirtualThreadPerTaskExecutor();
-        snakes.forEach(s -> exec.submit(new SnakeRunner(s, board)));
-
+        //snakes.forEach(s -> exec.submit(new SnakeRunner(s, board)));
+        snakes.forEach(s -> {
+            SnakeRunner r = new SnakeRunner(s, board);
+            runners.add(r);
+        });
         actionButton.addActionListener((ActionEvent e) -> togglePause());
 
         gamePanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("SPACE"), "pause");
@@ -99,13 +103,13 @@ public final class SnakeApp extends JFrame {
              * im.put(KeyStroke.getKeyStroke('D'), "p2-right");
              * im.put(KeyStroke.getKeyStroke('W'), "p2-up");
              * im.put(KeyStroke.getKeyStroke('S'), "p2-down");
-      *
+             *
              */
             im.put(KeyStroke.getKeyStroke("pressed A"), "p2-left");
             im.put(KeyStroke.getKeyStroke("pressed D"), "p2-right");
             im.put(KeyStroke.getKeyStroke("pressed W"), "p2-up");
             im.put(KeyStroke.getKeyStroke("pressed S"), "p2-down");
-            
+
             am.put("p2-left", new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -136,15 +140,34 @@ public final class SnakeApp extends JFrame {
         clock.start();
     }
 
+    /**
+     * private void togglePause() { if
+     * ("Iniciar".equals(actionButton.getText())) {
+     * actionButton.setText("Resume"); clock.pause(); } else {
+     * actionButton.setText("Iniciar"); clock.resume(); } }
+    *
+     */
+
     private void togglePause() {
-        if ("Action".equals(actionButton.getText())) {
-            actionButton.setText("Resume");
-            clock.pause();
-        } else {
-            actionButton.setText("Action");
-            clock.resume();
+        switch (actionButton.getText()) {
+            case "Iniciar":
+                actionButton.setText("Pausar");
+                clock.start();
+                runners.forEach(r -> r.setPaused(false));
+                break;
+            case "Pausar":
+                actionButton.setText("Reanudar");
+                clock.pause();
+                runners.forEach(r -> r.setPaused(true));
+                break;
+            case "Reanudar":
+                actionButton.setText("Pausar");
+                clock.resume();
+                runners.forEach(r -> r.setPaused(false));
+                break;
         }
     }
+    
 
     public static final class GamePanel extends JPanel {
 
