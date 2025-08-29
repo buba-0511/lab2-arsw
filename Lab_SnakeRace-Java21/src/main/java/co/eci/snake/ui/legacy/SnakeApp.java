@@ -18,10 +18,11 @@ public final class SnakeApp extends JFrame {
 
     private final Board board;
     private final GamePanel gamePanel;
-    private final JButton actionButton;
+    private static final JButton actionButton = new JButton();
     private final GameClock clock;
-    private final java.util.List<Snake> snakes = new java.util.ArrayList<>();
+    private static final java.util.List<Snake> snakes = new java.util.ArrayList<>();
     private final java.util.List<SnakeRunner> runners = new java.util.ArrayList<>();
+	private static final java.util.List<Snake> deathOrder = new java.util.ArrayList<>();
 
     public SnakeApp() {
         super("The Snake Race");
@@ -36,7 +37,7 @@ public final class SnakeApp extends JFrame {
         }
 
         this.gamePanel = new GamePanel(board, () -> snakes);
-        this.actionButton = new JButton("Iniciar");
+        actionButton.setText("Iniciar");
 
         setLayout(new BorderLayout());
         add(gamePanel, BorderLayout.CENTER);
@@ -166,8 +167,36 @@ public final class SnakeApp extends JFrame {
                 runners.forEach(r -> r.setPaused(false));
                 break;
         }
+		gamePanel.repaint();
     }
+
+	public static void launch() {
+		SwingUtilities.invokeLater(SnakeApp::new);
+	}
     
+	public static void registerDeath(Snake s) {
+        if (!deathOrder.contains(s)) {
+            deathOrder.add(s);
+        }
+    }
+
+	private static Snake getWorstSnake() {
+        return deathOrder.isEmpty() ? null : deathOrder.get(0);
+    }
+
+	private static Snake getLongestAliveSnake() {
+		Snake longest = null;
+
+		for (Snake snake : snakes) {
+			if (snake.isAlive()) {
+				if (longest == null || snake.snapshot().size() > longest.snapshot().size()) {
+					longest = snake;
+				}
+			}
+		}
+
+		return longest;
+	}
 
     public static final class GamePanel extends JPanel {
 
@@ -261,11 +290,52 @@ public final class SnakeApp extends JFrame {
                 }
                 idx++;
             }
-            g2.dispose();
-        }
-    }
 
-    public static void launch() {
-        SwingUtilities.invokeLater(SnakeApp::new);
-    }
+			if ("Reanudar".equals(actionButton.getText())) {
+				Snake longest = getLongestAliveSnake();
+				Snake worst   = getWorstSnake();
+
+				java.util.List<String> mensajes = new java.util.ArrayList<>();
+				if (worst == null) {
+					mensajes.add("No ha muerto ninguna serpiente aún.");
+				} else if (!worst.isAlive()) {
+					mensajes.add("La peor serpiente fue de tamaño " + worst.snapshot().size());
+				}
+				if (longest != null) {
+					mensajes.add("La serpiente viva más grande tiene tamaño: " + longest.snapshot().size());
+				}
+
+				if (!mensajes.isEmpty()) {
+					g2.setFont(new Font("Arial", Font.BOLD, 20));
+					FontMetrics fm = g2.getFontMetrics();
+
+
+					int lineHeight = fm.getHeight();
+					int padding = 20;
+					int boxHeight = mensajes.size() * lineHeight + padding * 2;
+					int boxWidth = mensajes.stream().mapToInt(fm::stringWidth).max().orElse(200) + padding * 2;
+
+					int panelWidth = getWidth();
+					int panelHeight = getHeight();
+					int boxX = (panelWidth - boxWidth) / 2;
+					int boxY = (panelHeight - boxHeight) / 2;
+
+					g2.setColor(new Color(0, 0, 0, 180));
+					g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+
+					g2.setColor(Color.WHITE);
+					g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 20, 20);
+
+					g2.setColor(Color.WHITE);
+					int textY = boxY + padding + fm.getAscent();
+					for (String msg : mensajes) {
+						int textX = boxX + (boxWidth - fm.stringWidth(msg)) / 2;
+						g2.drawString(msg, textX, textY);
+						textY += lineHeight;
+					}
+				}
+			}
+			g2.dispose();
+    	}
+	}
 }
