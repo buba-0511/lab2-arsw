@@ -280,7 +280,14 @@ public final class SnakeApp extends JFrame {
                 var body = s.snapshot().toArray(new Position[0]);
                 for (int i = 0; i < body.length; i++) {
                     var p = body[i];
-                    Color base = (idx == 0) ? new Color(0, 170, 0) : new Color(0, 160, 180);
+                    Color base;
+					if (idx == 0) {
+						base = new Color(0, 170, 0); // p1
+					} else if (idx == 1) {
+						base = new Color(0, 0, 0); // p2
+					} else {
+						base = new Color(0, 160, 180); // otras
+					}
                     int shade = Math.max(0, 40 - i * 4);
                     g2.setColor(new Color(
                             Math.min(255, base.getRed() + shade),

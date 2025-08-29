@@ -20,6 +20,12 @@ public final class SnakeRunner implements Runnable {
 
     private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
     private volatile boolean paused = true;
+
+    /**
+     * Crea un corredor para una serpiente en un tablero.
+     * @param snake la serpiente a controlar.
+     * @param board el tablero donde se mueve la serpiente.
+     */
     public SnakeRunner(Snake snake, Board board) {
         this.snake = snake;
         this.board = board;
@@ -48,10 +54,18 @@ public final class SnakeRunner implements Runnable {
     
     **/ 
     
+    /**
+     * Pausa o reanuda la serpiente.
+     * @param paused true para pausar, false para reanudar.
+     */
     public void setPaused(boolean paused) {
         this.paused = paused;
     }
     
+    /**
+     * Ejecuta un paso del juego para esta serpiente.
+     * Si la serpiente está pausada o muerta, no hace nada.
+     */
     @Override
     public void run() {
         if (!paused && snake.isAlive()) { 
@@ -59,8 +73,8 @@ public final class SnakeRunner implements Runnable {
             var res = board.step(snake);
             if (res == Board.MoveResult.HIT_OBSTACLE) {
                 snake.setAlive(false);
-                SnakeApp.registerDeath(snake); // 🔹 registra orden de muerte
-                return; // no reprogramar más esta serpiente
+                SnakeApp.registerDeath(snake);
+                return;
             } else if (res == Board.MoveResult.ATE_TURBO) {
                 turboTicks = 100;
             }
@@ -70,6 +84,10 @@ public final class SnakeRunner implements Runnable {
         executor.schedule(this, delay, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Gira la serpiente con una probabilidad p.
+     * Si la serpiente tiene turbo, p es mayor.
+     */
     private void maybeTurn() {
         double p = (turboTicks > 0) ? 0.01 : 0.01;
         if (ThreadLocalRandom.current().nextDouble() < p) {
@@ -77,6 +95,9 @@ public final class SnakeRunner implements Runnable {
         }
     }
 
+    /**
+     * Gira la serpiente en una dirección aleatoria.
+     */
     private void randomTurn() {
         var dirs = Direction.values();
         snake.turn(dirs[ThreadLocalRandom.current().nextInt(dirs.length)]);
