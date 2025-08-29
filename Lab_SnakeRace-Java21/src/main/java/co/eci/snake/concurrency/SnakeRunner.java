@@ -3,6 +3,7 @@ package co.eci.snake.concurrency;
 import co.eci.snake.core.Board;
 import co.eci.snake.core.Direction;
 import co.eci.snake.core.Snake;
+import co.eci.snake.ui.legacy.SnakeApp;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -53,31 +54,28 @@ public final class SnakeRunner implements Runnable {
     
     @Override
     public void run() {
-        if (!paused) { // 🔹 solo avanza si no está en pausa
+        if (!paused && snake.isAlive()) { 
             maybeTurn();
             var res = board.step(snake);
             if (res == Board.MoveResult.HIT_OBSTACLE) {
-                randomTurn();
+                snake.setAlive(false);
+                SnakeApp.registerDeath(snake); // 🔹 registra orden de muerte
+                return; // no reprogramar más esta serpiente
             } else if (res == Board.MoveResult.ATE_TURBO) {
                 turboTicks = 100;
             }
-            if (turboTicks > 0) {
-                turboTicks--;
-            }
+            if (turboTicks > 0) turboTicks--;
         }
         int delay = (turboTicks > 0) ? turboSleepMs : baseSleepMs;
         executor.schedule(this, delay, TimeUnit.MILLISECONDS);
     }
+
     private void maybeTurn() {
         double p = (turboTicks > 0) ? 0.01 : 0.01;
         if (ThreadLocalRandom.current().nextDouble() < p) {
             randomTurn();
         }
     }
-    
-    
-    
-    
 
     private void randomTurn() {
         var dirs = Direction.values();
